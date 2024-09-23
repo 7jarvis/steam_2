@@ -1,46 +1,43 @@
 from webdriver_singleton import WebDriverSingleton
 from home_page import HomePage
 from search_result import SearchResult
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
 import pytest
+import json
+from home_page import ConfigReader
+from check_filter import CheckFilter
 
-TIMEOUT = 10
-test_results = []
+with open('test_data.json', 'r') as f:
+    test_data = json.load(f)
 
 
 @pytest.fixture(scope="module")
 def driver():
-    driver = WebDriverSingleton.get_instance()
-    driver.maximize_window()
-    yield driver
-    driver.quit()
+    driver_instance = WebDriverSingleton.get_instance()
+    driver_instance.driver.maximize_window()
+    yield driver_instance.driver
+    driver_instance.quit()
 
 
 @pytest.mark.parametrize(
-    "game",
-    [
-        "The Witcher",
-        "Fallout"
-    ]
+    "game_data",
+    test_data['steam_games']
 )
-def test_steam(driver, game):
+def test_steam(driver, game_data):
+    test_results = []
+    game = game_data['game']
+    n = game_data['n']
+    cfg = ConfigReader()
     home = HomePage(driver)
-    home.open_page(home.STEAM_LINK)
-    install_button = WebDriverWait(driver, TIMEOUT).until(
-        ec.element_to_be_clickable(home.INSTALL))
-    assert install_button, 'Home page was not opened'
+    driver.get(cfg.STEAM_LINK)
+    assert home.is_homepage_opened(), 'Home page was not opened'
     driver.maximize_window()
     home.enter_game(game)
     home.click_search()
-    search_page = SearchResult(driver, game)
-    tag = WebDriverWait(driver, TIMEOUT).until(
-        ec.presence_of_element_located(search_page.searched))
-    assert tag, 'Search result page was not opened'
+    search_page = SearchResult(driver)
+    assert search_page.is_search_page_opened(game), 'Search result page was not opened'
     search_page.use_filter()
-    n = 10 if game == "The Witcher" else 20
-    games, prices = (search_page.retrieve_data(n))
+    games = search_page.retrieve_data(n)
     test_results.append(games)
-    assert search_page.is_filtering_working(prices), 'Filter didn`t work'
-
-
+    print(test_results)
+    cfilter = CheckFilter()
+    assert cfilter.is_filtering_working(games), 'Filter didn`t work'

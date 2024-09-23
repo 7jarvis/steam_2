@@ -1,70 +1,72 @@
-import time
-
+from home_page import ConfigReader
+from home_page import HomePage
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
-from selenium.common.exceptions import StaleElementReferenceException
+import time
 
 
-class SearchResult:
-    def __init__(self, driver, game):
-        self.driver = driver
-        self.game = game
-        self.TIMEOUT = 10
-        self.searched = (
-            By.XPATH, f"//div//div[@data-tag_value='{self.game}']")
-        self.filer = (By.XPATH, "//a[@id='sort_by_trigger']")
-        self.order = (By.XPATH, "//a[@id='Price_DESC']")
-        self.title = (By.XPATH, "//span[@class='title']")
-        self.price = (By.XPATH, "//div//div//div[contains(@class, 'final_price')]")
+class SearchResult(ConfigReader, HomePage):
+    FILTER = (By.XPATH, "//*[@id='sort_by_trigger']")
+    ORDER = (By.XPATH, "//*[@id='Price_DESC']")
+    TITLE = (By.XPATH, "//span[@class='title']")
+    PRICE = (By.XPATH, "//div[contains(@class, 'final_price')]")
+
+    def is_search_page_opened(self, game):
+        searched = (
+            By.XPATH, f"//div//div[@data-tag_value='{game}']")
+        tag = WebDriverWait(self.driver, self.TIMEOUT).until(
+            ec.presence_of_element_located(searched))
+        return True if tag else False
 
     def use_filter(self):
+        first_element_before = WebDriverWait(self.driver, self.TIMEOUT).until(
+            ec.presence_of_element_located(
+                self.TITLE)
+        ).text
         button = WebDriverWait(self.driver, self.TIMEOUT).until(
-            ec.element_to_be_clickable(self.filer)
+            ec.element_to_be_clickable(self.FILTER)
         )
         button.click()
 
         button_order = WebDriverWait(self.driver, self.TIMEOUT).until(
-            ec.element_to_be_clickable(self.order)
+            ec.element_to_be_clickable(self.ORDER)
         )
         button_order.click()
-        time.sleep(3)
+        WebDriverWait(self.driver, self.TIMEOUT).until(
+            ec.presence_of_element_located(self.ORDER)
+        )
+
+        WebDriverWait(self.driver, self.TIMEOUT).until(
+            ec.text_to_be_present_in_element(self.TITLE, first_element_before)
+        )
+
+        WebDriverWait(self.driver, self.TIMEOUT).until(
+            lambda x: WebDriverWait(x, self.TIMEOUT).until(
+                ec.presence_of_element_located(self.TITLE)
+            ).text != first_element_before
+        )
 
     def retrieve_data(self, n):
-        result = []
-        prices = []
+        result = {}
         for i in range(1, n + 1):
-            element = f"({self.title[1]})[{i}]"
-            price = f"({self.price[1]})[{i}]"
-            try:
+            element = f"({self.TITLE[1]})[{i}]"
+            price = f"({self.PRICE[1]})[{i}]"
+            if ec.visibility_of_element_located((By.XPATH, element)):
                 title_element = WebDriverWait(self.driver, self.TIMEOUT).until(
                     ec.presence_of_element_located((By.XPATH, element)))
-                result.append(title_element.text)
+
                 price_element = WebDriverWait(self.driver, self.TIMEOUT).until(
                     ec.presence_of_element_located((By.XPATH, price)))
-                prices.append(price_element.text)
-            except StaleElementReferenceException:
+                result[title_element.text] = price_element.text
+            else:
                 self.driver.execute_script("arguments[0].scrollIntoView();")
-
                 title_element = WebDriverWait(self.driver, self.TIMEOUT).until(
                     ec.presence_of_element_located((By.XPATH, element))
                 )
-                result.append(title_element.text)
+
                 price_element = WebDriverWait(self.driver, self.TIMEOUT).until(
                     ec.presence_of_element_located((By.XPATH, price)))
-                prices.append(price_element.text)
-        return result, prices
+                result[title_element.text] = price_element.text
 
-    @staticmethod
-    def is_filtering_working(prices):
-        check_prices = []
-        for item in prices:
-            value = item.split()
-            for number in value:
-                try:
-                    number = float(number)
-                    check_prices.append(number)
-                except ValueError:
-                    pass
-
-        return all(check_prices[i] >= check_prices[i + 1] for i in range(len(check_prices) - 1))
+        return result

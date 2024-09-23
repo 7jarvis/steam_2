@@ -1,21 +1,24 @@
 from selenium import webdriver
-from threading import Lock
 
 
 class WebDriverSingleton:
     _instance = None
-    _lock = Lock()
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(WebDriverSingleton, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
+
+    def __init__(self):
+        if not hasattr(self, '_initialized'):
+            self._initialized = True
+            self.driver = webdriver.Chrome()
 
     @classmethod
     def get_instance(cls):
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = webdriver.Chrome()
-        return cls._instance
+        return cls()
 
-    @classmethod
-    def quit(cls):
-        if cls._instance is not None:
-            cls._instance.quit()
-            cls._instance = None
+    def quit(self):
+        if self.driver:
+            self.driver.quit()
+            WebDriverSingleton._instance = None
