@@ -1,18 +1,17 @@
-class CheckFilter:
+import re
+
+
+class CheckSorting:
     @staticmethod
-    def is_filtering_working(prices):
-        check_prices = []
+    def retrieve_number(price):
+        match = re.search(r'\d+[,.]?\d*', price)
+        number_str = match.group().replace(',', '.')
+        return float(number_str)
+
+    def is_sorting_working(self, prices):
         num_prices = []
-        for value in prices:
-            check_prices.append(value)
-        for item in prices:
-            value = item.split()
-            for number in value:
-                try:
-                    number = float(number)
-                    num_prices.append(number)
-                except ValueError:
-                    pass
+        for value in prices.values():
+            num_prices.append(self.retrieve_number(value))
 
         sorted_prices = sorted(num_prices, reverse=True)
         return num_prices == sorted_prices

@@ -3,41 +3,39 @@ from home_page import HomePage
 from search_result import SearchResult
 import pytest
 import json
-from home_page import ConfigReader
-from check_filter import CheckFilter
-
-with open('test_data.json', 'r') as f:
-    test_data = json.load(f)
+from check_filter import CheckSorting
+from config_reader import ConfigReader
+from test_data_reader import TestDataReader
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def driver():
-    driver_instance = WebDriverSingleton.get_instance()
+    driver_instance = WebDriverSingleton()
     driver_instance.driver.maximize_window()
     yield driver_instance.driver
-    driver_instance.quit()
+    driver_instance.clear()
 
 
 @pytest.mark.parametrize(
-    "game_data",
-    test_data['steam_games']
+    "game, n",
+    [(game['game'], game['n']) for game in TestDataReader.test_data['steam_games']]
 )
-def test_steam(driver, game_data):
+def test_steam(driver, game, n):
     test_results = []
-    game = game_data['game']
-    n = game_data['n']
     cfg = ConfigReader()
     home = HomePage(driver)
-    driver.get(cfg.STEAM_LINK)
-    assert home.is_homepage_opened(), 'Home page was not opened'
+    driver.get(cfg.return_value("STEAM_LINK"))
+    assert home.is_page_opened(), 'Expected result: Home page was opened\n Actual result:Home page was not opened'
     driver.maximize_window()
     home.enter_game(game)
     home.click_search()
     search_page = SearchResult(driver)
-    assert search_page.is_search_page_opened(game), 'Search result page was not opened'
+    assert search_page.is_search_page_opened(
+        game), 'Expected result:Search result page was opened\n Actual result:Search result page was not opened'
     search_page.use_filter()
-    games = search_page.retrieve_data(n)
+    games = search_page.get_data(n)
     test_results.append(games)
     print(test_results)
-    cfilter = CheckFilter()
-    assert cfilter.is_filtering_working(games), 'Filter didn`t work'
+    cfilter = CheckSorting()
+    assert cfilter.is_sorting_working(
+        games), 'Expected result:Sorting applied successfully\n Actual result:Sorting didn`t work'
