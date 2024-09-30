@@ -1,19 +1,10 @@
-from webdriver_singleton import WebDriverSingleton
-from home_page import HomePage
-from search_result import SearchResult
+from pages.home_page import HomePage
+from pages.search_result import SearchResult
 import pytest
-import json
-from check_filter import CheckSorting
-from config_reader import ConfigReader
-from test_data_reader import TestDataReader
-
-
-@pytest.fixture(scope="function")
-def driver():
-    driver_instance = WebDriverSingleton()
-    driver_instance.driver.maximize_window()
-    yield driver_instance.driver
-    driver_instance.clear()
+from utilites.conftest import driver
+from tests.check_filter import CheckSorting
+from utilites.config_reader import ConfigReader
+from utilites.test_data_reader import TestDataReader
 
 
 @pytest.mark.parametrize(

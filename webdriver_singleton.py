@@ -7,10 +7,10 @@ class WebDriverSingleton:
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls, *args, **kwargs)
-            cls._instance.driver = webdriver.Chrome()
+            cls._instance = webdriver.Chrome()
         return cls._instance
 
     @staticmethod
-    def clear():
-        WebDriverSingleton._instance.driver.quit()
+    def quit():
+        WebDriverSingleton._instance.quit()
         WebDriverSingleton._instance = None
