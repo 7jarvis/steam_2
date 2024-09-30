@@ -1,10 +1,32 @@
-from webdriver_singleton import WebDriverSingleton
-from home_page import HomePage
-from search_result import SearchResult
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
+from pages.home_page import HomePage
+from pages.search_result import SearchResult
 import pytest
+from utilites.conftest import driver
+from tests.check_filter import CheckSorting
+from utilites.config_reader import ConfigReader
+from utilites.test_data_reader import TestDataReader
 
-A
 
-
+@pytest.mark.parametrize(
+    "game, n",
+    [(game['game'], game['n']) for game in TestDataReader.test_data['steam_games']]
+)
+def test_steam(driver, game, n):
+    test_results = []
+    cfg = ConfigReader()
+    home = HomePage(driver)
+    driver.get(cfg.return_value("STEAM_LINK"))
+    assert home.is_page_opened(), 'Expected result: Home page was opened\n Actual result:Home page was not opened'
+    driver.maximize_window()
+    home.enter_game(game)
+    home.click_search()
+    search_page = SearchResult(driver)
+    assert search_page.is_search_page_opened(
+        game), 'Expected result:Search result page was opened\n Actual result:Search result page was not opened'
+    search_page.use_filter()
+    games = search_page.get_data(n)
+    test_results.append(games)
+    print(test_results)
+    cfilter = CheckSorting()
+    assert cfilter.is_sorting_working(
+        games), 'Expected result:Sorting applied successfully\n Actual result:Sorting didn`t work'
